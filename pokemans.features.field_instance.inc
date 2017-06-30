@@ -22,7 +22,7 @@ function pokemans_field_default_field_instances() {
     'description' => '',
     'display' => array(
       'default' => array(
-        'label' => 'above',
+        'label' => 'inline',
         'module' => 'number',
         'settings' => array(
           'decimal_separator' => '.',
@@ -72,7 +72,7 @@ function pokemans_field_default_field_instances() {
     'description' => '',
     'display' => array(
       'default' => array(
-        'label' => 'above',
+        'label' => 'inline',
         'module' => 'number',
         'settings' => array(
           'decimal_separator' => '.',
@@ -122,7 +122,7 @@ function pokemans_field_default_field_instances() {
     'description' => 'The ID of the pokemon (ie: 1 for bulbasaur)',
     'display' => array(
       'default' => array(
-        'label' => 'above',
+        'label' => 'inline',
         'module' => 'number',
         'settings' => array(
           'decimal_separator' => '.',
@@ -206,22 +206,17 @@ function pokemans_field_default_field_instances() {
     'default_value' => array(
       0 => array(
         'value' => 'https://cdn.bulbagarden.net/upload/4/45/Spr_4d_Egg.png',
-        'title' => '',
-        'attributes' => NULL,
       ),
     ),
     'deleted' => 0,
     'description' => '',
     'display' => array(
       'default' => array(
-        'label' => 'above',
-        'module' => 'url',
-        'settings' => array(
-          'nofollow' => FALSE,
-          'trim_length' => 80,
-        ),
-        'type' => 'url_default',
-        'weight' => 3,
+        'label' => 'inline',
+        'module' => 'text',
+        'settings' => array(),
+        'type' => 'text_default',
+        'weight' => 6,
       ),
       'teaser' => array(
         'label' => 'above',
@@ -235,18 +230,17 @@ function pokemans_field_default_field_instances() {
     'label' => 'Sprite URL',
     'required' => 1,
     'settings' => array(
-      'title_fetch' => 0,
-      'title_field' => 0,
+      'text_processing' => 0,
       'user_register_form' => FALSE,
     ),
     'widget' => array(
       'active' => 1,
-      'module' => 'url',
+      'module' => 'text',
       'settings' => array(
         'size' => 300,
       ),
-      'type' => 'url_external',
-      'weight' => 34,
+      'type' => 'text_textfield',
+      'weight' => 37,
     ),
   );
 

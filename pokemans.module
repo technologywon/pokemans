@@ -121,12 +121,14 @@ function pokemans_node_view_alter(&$build) {
           }
           else{
           $new_id = $chain['chain']['evolves_to'][0]['species']['name'];
+          $node_wrapper->field_experience->set(0);
           }
         }
         //make new pokeman and update fields
         $new_pokeman = json_decode($api->pokemon($new_id), true);
         dpm($new_pokeman);
-        $node_wrapper->field_experience->set(0);
+        //TODO make the name update work with unnamed pokemans as well
+        if($id == 0) $node_wrapper->title->set($new_pokeman['name']);
         $node_wrapper->field_id_number->set($new_pokeman['id']);
         $node_wrapper->field_sprite_url->set($new_pokeman['sprites']['front_default']);
       }

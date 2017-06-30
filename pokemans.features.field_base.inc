@@ -130,12 +130,18 @@ function pokemans_field_default_field_bases() {
     'deleted' => 0,
     'entity_types' => array(),
     'field_name' => 'field_sprite_url',
-    'indexes' => array(),
+    'indexes' => array(
+      'format' => array(
+        0 => 'format',
+      ),
+    ),
     'locked' => 0,
-    'module' => 'url',
-    'settings' => array(),
+    'module' => 'text',
+    'settings' => array(
+      'max_length' => 300,
+    ),
     'translatable' => 0,
-    'type' => 'url',
+    'type' => 'text',
   );
 
   return $field_bases;
