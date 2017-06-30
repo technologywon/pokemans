@@ -1,0 +1,170 @@
+<?php
+/**
+ * @file
+ * Code for the Pokemans feature.
+ */
+
+include_once 'pokemans.features.inc';
+
+/*
+  Implements hook_menu to create a form for generating pokemans
+*/
+function pokemans_menu() {
+    $items['generate-pokeman'] = array(
+        'title' => 'Generate a Pokeman',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('pokemans_form'),
+        'access callback' => TRUE,
+        'type' => MENU_NORMAL_ITEM,
+    );
+    return $items;
+}
+/*
+  fields for pokeman generating form
+*/
+function pokemans_form() {
+    $form['name'] = array(
+        '#title' => 'Want to name it?',
+        '#type' => 'textfield',
+        '#description' => t('Enter how many cartons you want.'),
+        '#default' => '0',
+    );
+    $form['id'] = array(
+        '#title' => 'Enter ID number of pokeman. Leaving this blank give you an egg',
+        '#type' => 'textfield',
+        '#description' => t('Enter how many cartons you want.'),
+        '#element_validate' => array('element_validate_pokerange'),//1-721 (wow)
+        '#default' => '0',
+    );
+    $form['submit'] = array(
+        '#type' => 'submit',
+        '#value'=> 'Generate!',
+    );
+
+    return $form;
+}
+
+//Validation to make sure the id is valid
+function element_validate_pokerange($element) {
+    if ($element['#value'] < 1 || $element['#value'] > 721) {
+        form_error($element, t('Number must be between 1 and 721'));
+    }
+}
+
+/*
+  Implements hook_form_submit to create a node using information from
+  generation form and the pokemon api
+*/
+function pokemans_form_submit($form, &$form_state) {
+
+    global $user;
+    //create node framework
+    $node = entity_create('node', array('type' => 'pokemon'));
+    $node->uid = $user->uid;
+    $entity = entity_metadata_wrapper('node', $node);
+    $entity->field_owner->set($user->uid);
+
+    //use the id if supplied
+    if($form_state['values']['id']){
+      $id = $form_state['values']['id'];
+      $api = new PokeApi;
+      $pokeman = json_decode($api->pokemon($form_state['values']['id']), true);
+      dpm($pokeman['sprites']['front_default']);
+      //use name supplied or pokemon name if no name supplied
+      $form_state['values']['name']? $entity->title->set($form_state['values']['name']) : $entity->title->set($pokeman['name']);
+      $entity->field_id_number->set($form_state['values']['id']);
+      $entity->field_sprite_url->set($pokeman['sprites']['front_default']);
+    }
+    //if no id and no name, call it "Egg"
+    //this also saves the rest of the node to the defaults for the content type
+    elseif(!$form_state['values']['name']){
+       $entity->title->set('Egg');
+    }
+    $entity->save();
+    //save it and send the user to their pokemans page
+    $form_state['redirect'] = 'pokemans';
+}
+/*
+  Implements hook_node_alter to give exp on page load and evolve pokemans
+*/
+function pokemans_node_view_alter(&$build) {
+  //make sure we only run code on pokemon pages
+  if($build['#node']->type == 'pokemon'){
+    //get node variables
+    $nid = $build['#node']->nid;
+    $node = node_load($nid);
+    //set wrapper so we can edit the node
+    $node_wrapper = entity_metadata_wrapper('node', $node);
+
+    $new_exp = $node->field_experience['und'][0]['value'] +1;
+    $node_wrapper->field_experience->set($new_exp);
+
+    $goal = $node->field_exp_to_lvl['und'][0]['value'];
+
+    $id = $node->field_id_number['und'][0]['value'];
+    //if evolving (lvling)
+    if($new_exp > $goal){
+        //egg randomly gets assigned a pokemon
+        if($id == 0){
+          $new_id = rand(1,721);
+        }else{ //everything else checks for evolutions
+          $api = new PokeApi;
+          $pokeman = json_decode($api->pokemon($id), true);
+          $species = json_decode($api->sendRequest($pokeman['species']['url']), true);
+          $chain = json_decode($api->sendRequest($species['evolution_chain']['url']), true);
+          dpm($pokeman);
+          if(!$chain['chain']['evolves_to']){
+            ;//TODO check if pokeman has no evolution to stop resetting experience
+          }
+          else{
+          $new_id = $api->pokemon($chain['chain']['evolves_to'][0]['species']['name']);
+          }
+        }
+        //make new pokeman and update fields
+        $new_pokeman = json_decode($new_id, true);
+        dpm($new_pokeman);
+        $node_wrapper->field_experience->set(0);
+        $node_wrapper->field_id_number->set($new_pokeman['id']);
+        $node_wrapper->field_sprite_url->set($new_pokeman['sprites']['front_default']);
+      }
+    $node_wrapper->save();
+  }
+}
+
+/***
+  Took portions of https://github.com/danrovito/pokephp to implement pokemon api
+  ****/
+
+class PokeApi {
+    public function __construct(){
+        $this->baseUrl = 'https://pokeapi.co/api/v2/';
+    }
+
+    public function pokemon($lookUp){
+        $url = $this->baseUrl.'pokemon/'.$lookUp;
+        return $this->sendRequest($url);
+    }
+    public function evolutionChain($id){
+        $url = $this->baseUrl.'evolution-chain/'.$id;
+        return $this->sendRequest($url);
+    }
+    public function pokemonSpecies($lookUp){
+        $url = $this->baseUrl.'pokemon-species/'.$lookUp;
+        return $this->sendRequest($url);
+    }
+    public function sendRequest($url){
+        $ch = curl_init();
+        $timeout = 5;
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
+        $data = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($http_code != 200) {
+            return json_encode('An error has occured.');
+        }
+        return $data;
+    }
+  }
