@@ -46,6 +46,8 @@ function pokemans_form() {
 
 //Validation to make sure the id is valid
 function element_validate_pokerange($element) {
+    //not submitting a value is ok
+    if (!$element['#value']) return;
     if ($element['#value'] < 1 || $element['#value'] > 721) {
         form_error($element, t('Number must be between 1 and 721'));
     }
@@ -102,13 +104,14 @@ function pokemans_node_view_alter(&$build) {
     $goal = $node->field_exp_to_lvl['und'][0]['value'];
 
     $id = $node->field_id_number['und'][0]['value'];
+
+    $api = new PokeApi;
     //if evolving (lvling)
     if($new_exp > $goal){
         //egg randomly gets assigned a pokemon
         if($id == 0){
           $new_id = rand(1,721);
         }else{ //everything else checks for evolutions
-          $api = new PokeApi;
           $pokeman = json_decode($api->pokemon($id), true);
           $species = json_decode($api->sendRequest($pokeman['species']['url']), true);
           $chain = json_decode($api->sendRequest($species['evolution_chain']['url']), true);
@@ -117,11 +120,11 @@ function pokemans_node_view_alter(&$build) {
             ;//TODO check if pokeman has no evolution to stop resetting experience
           }
           else{
-          $new_id = $api->pokemon($chain['chain']['evolves_to'][0]['species']['name']);
+          $new_id = $chain['chain']['evolves_to'][0]['species']['name'];
           }
         }
         //make new pokeman and update fields
-        $new_pokeman = json_decode($new_id, true);
+        $new_pokeman = json_decode($api->pokemon($new_id), true);
         dpm($new_pokeman);
         $node_wrapper->field_experience->set(0);
         $node_wrapper->field_id_number->set($new_pokeman['id']);
